@@ -2,6 +2,7 @@
 <suite name="OpenWeather Stations Suite" verbose="1" parallel="false">
     <test name="CRUD + Negatives (Faker)">
         <classes>
+            <class name="openWeather.BaseTest"/>
 
         </classes>
     </test>

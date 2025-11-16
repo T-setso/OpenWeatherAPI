@@ -39,21 +39,25 @@ public class StationsCrudTest extends BaseTest {
                 .when().post("/stations" + appIdQuery())
                 .then()
                 .statusCode(201)
-                .body("ID", notNullValue())
+                //.body("ID", notNullValue())
                 .body("name", equalTo(stationName))
                 .extract().response();
 
-        stationId = res.jsonPath().getString("ID");
-        Assert.assertNotNull(stationId);
+        assertHasIdOrID(res);//custom assertion to check for ID presence
+        stationId = extractStationId(res);//extract and store the station ID for later use
+        //print the created station ID for debugging
+        System.out.println("Created station ID: " + stationId);
+        //final check to ensure stationId is not null
+        Assert.assertNotNull(stationId, "stationId should be present in POST response (id/ID)");
     }
 
     //---------Test to retrieve the created weather station---------
-   /* @Test(priority = 2, dependsOnMethods = "createStationTest")
-    public void getStationTest() {
+   @Test(priority = 2, dependsOnMethods = "createStationTest")
+    public void getStation() {
         //send GET request to retrieve the station by ID and validate the response
         given().when().get("/stations/" + stationId + appIdQuery())
                 .then()
                 .statusCode(200)
-                .body("ID", equalTo(stationId));
-    }*/
-}
+                .body("id", equalTo(stationId))
+                .body("$", hasKey("name"));
+    }}

@@ -2,12 +2,17 @@ package openWeather;
 import com.github.javafaker.Faker;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
+import io.restassured.response.Response;
 import org.testng.annotations.BeforeSuite;
 
-import java.io.FileInputStream;
+import java.io.InputStream;
 import java.io.IOException;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Properties;
+
+import static org.hamcrest.Matchers.anyOf;
+import static org.hamcrest.Matchers.hasKey;
 
 public class BaseTest {
     //config properties object to be used in tests
@@ -20,18 +25,20 @@ public class BaseTest {
     //faker object to generate random test data
     protected static Faker faker = new Faker();
 
-    @BeforeSuite
+    @BeforeSuite //runs once before all tests in the suite
     public void globalSetUp() throws IOException{
-        //load config properties from file
-        try(FileInputStream fis = new FileInputStream("src/test/java/resources/config.properties")){
-            CONFIG.load(fis);//load properties from file
+
+        try (InputStream is = Thread.currentThread().getContextClassLoader()
+                .getResourceAsStream("config.properties")) {
+            if (is == null) throw new IOException("config.properties not found on classpath (src/test/java/resources)");
+            CONFIG.load(is);
         }
         //override properties with system properties if provided
         BASE_URL = System.getProperty("baseUrl", CONFIG.getProperty("baseUrl"));
         APP_ID   = System.getProperty("appid",   CONFIG.getProperty("appid"));
 
         //initialize faker with South African locale
-        faker = new Faker(Locale.forLanguageTag("en-ZA"));
+        faker = new Faker(new Locale("en-ZA"));
 
         //set up RestAssured with base URL and logging to help debug test failures
         RestAssured.baseURI = BASE_URL;
@@ -41,7 +48,7 @@ public class BaseTest {
     protected String appIdQuery() { return "?appid=" + APP_ID; }
     protected ContentType JSON() { return ContentType.JSON; }//to specify JSON content type
 
-    // ---- Helpers: numeric-safe generators ----
+    // ---- Helpers: numeric-safe generators (avoid comma decimals) ----
     protected double randLat() {
         // randomDouble(maxDecimals, minInt, maxInt)
         return faker.number().randomDouble(6, -90, 90);
@@ -53,13 +60,17 @@ public class BaseTest {
         return faker.number().numberBetween(5, 5000);
     }
 
-    //Helper to read "id" or "ID"
-    protected String readIdCaseInsensitive(Properties props) {
-        String id = props.getProperty("id");
-        if (id == null) {
-            id = props.getProperty("ID");
-        }
-        return id;
+    // --- Robust extractor: accepts "id" or "ID" from API ---
+    protected String extractStationId(Response r) {
+        Map<String, Object> json = r.jsonPath().getMap("$");
+        Object v = json.get("id");
+        if (v == null) v = json.get("ID");  // POST/PUT sometimes returns "ID"
+        return v == null ? null : v.toString();
+    }
+
+    // --- Assertion helper to accept either casing in response ---
+    protected void assertHasIdOrID(Response r) {
+        r.then().body("$", anyOf(hasKey("id"), hasKey("ID")));
     }
 
 
