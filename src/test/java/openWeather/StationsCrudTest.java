@@ -61,3 +61,34 @@ public class StationsCrudTest extends BaseTest {
                 .body("id", equalTo(stationId))
                 .body("$", hasKey("name"));
     }}
+
+    //---------Test to update the created weather station---------
+   /* @Test(priority = 3, dependsOnMethods = "createStationTest")
+    public void updateStation() {
+        String newExternalId = "ST_UPD_" + faker.number().digits(6);
+        String newName = "Station_" + faker.address().streetName().replace(' ', '_');
+        double newLat = randLat();
+        double newLon = randLon();
+        int newAlt    = randAlt();
+
+        String updated = String.format("""
+            {
+              "external_id": "%s",
+              "name": "%s",
+              "latitude": %s,
+              "longitude": %s,
+              "altitude": %s
+            }""", newExternalId, newName, newLat, newLon, newAlt);
+
+        Response upd = given().contentType(JSON()).body(updated)
+                .when()
+                .put("/stations/" + stationId + appIdQuery())
+                .then()
+                .statusCode(200)
+                .body("name", equalTo(newName))
+                .extract().response();
+
+        // Ensure same id regardless of casing
+        String idFromUpdate = extractStationId(upd);
+        Assert.assertEquals(idFromUpdate, stationId, "PUT should return the same station id");
+    }*/
